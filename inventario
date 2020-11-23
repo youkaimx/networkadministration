@@ -1,0 +1,2 @@
+[celulas]
+srv01 ansible_host=ec2-18-191-228-83.us-east-2.compute.amazonaws.com ansible_user=ubuntu ansible_ssh_private_key_file=/home/rvaldez/.ssh/celulas.pem

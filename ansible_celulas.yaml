@@ -1,0 +1,26 @@
+- hosts:
+    srv01 
+  tasks:
+  - name: Actualizar el software instalado
+    apt:
+      name: "*"
+      state: latest
+  - name: Instalar apache
+    apt:
+      name: apache2
+      state: present
+  - name: Instalar nettools
+    apt:
+      name: net-tools
+      state: present
+  - name: Crear el usuario foobar
+    user:
+       name: foobar
+       generate_ssh_key: yes
+       ssh_key_file: .ssh/id_rsa
+       state: present
+  - name: Crear un directorio y darle permisos
+    file:
+       path: /home/foobar/celulas
+       state: directory
+       mode: 0444
