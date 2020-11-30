@@ -12,6 +12,7 @@
     - [Creación de usuarios](#creación-de-usuarios)
     - [Permisos](#permisos)
     - [Monitoreo](#monitoreo)
+    - [SSL y TLS para sitios de Web](#ssl-y-tls-para-sitios-de-web)
     - [Un entorno de Linux en Windows: Windows Subsystem for Linux y Windows Terminal](#un-entorno-de-linux-en-windows-windows-subsystem-for-linux-y-windows-terminal)
 ## Linux
 Linux es el nombre con el que se conoce al Kernel desarrollado por Linus Tolvards
@@ -104,4 +105,130 @@ Comando Linux: ```chmod```
 * Ejemplo de Nagios
 * Ejemplo con Elasticsearch, Logstash y Kibana
 
+### SSL y TLS para sitios de Web
+El uso de Secure Sockets Layer o principalmente su sucesor, Transport Layer Security) es un requerimiento para un sitio seguro y algunos navegadores insisten en su uso. Por ejemplo, Chrome identifica como no seguro un sitio sin TLS (prefijo http) y se [niega a cargar elementos servidos mediante HTTP en sitios seguros](https://www.engadget.com/2019-10-04-chrome-security-block-http-content.html) (HTTPS).
+
+Los certificados dan fe de que el servidor al que nos conectamos como clientes ha sido revisado por un tercero en su derecho de usar ese nombre de dominio.
+
+Para habilitar el uso de TLS en un sitio de web, se requiere de un certificado emitido por una entidad conocida como CA o Certification Autority. Estos CAs tienen a su vez certificados que se distribuyen en sistemas operativos y navegadores que permiten comprobar que realmente ellos otorgaron un certificado. Ejemplos de CAs son Digicert, Comodo, Amazon y Let's Encrypt.
+
+El uso de Let's Encrypt es particularmente interesante para nosotros debido a que 
+1. La emisión o renovación de sus certificados es gratuita
+2. La emisión o renovación de certificados es automatizada
+
+Para la solicitud de certificados, se puede utilizar una herramienta llamada `certbot`. Por ejemplo en ubuntu
+
+```
+rvaldez@web:~$ apt list certbot
+Listing... Done
+certbot/xenial-updates,now 0.27.0-1~ubuntu16.04.1 all [installed]
+```
+
+Los certificado se puede solicitar por un nombre o por un conjunto de nombres en un dominio. Por ejemplo, si tenemos un dominio foobar.org, podemos solicitar un certificado por foobar.org o por www.foobar.org, por www2.foobar.org o por todos al mismo tiempo. En cualquier caso, debemos tener control del servidor de nombres o DNS del domino para el cual solicitaremos.
+Por ejemplo, en el caso del dominio customerpulse.com, si quisieramos solicitar el certificado _wildcard_ por todos los nombres debajo del mismo, or `*.administracionderedes.com`, podríamos hacerlo con esta línea de comandos
+```
+root@web:/etc/apache2/sites-available# certbot certonly --manual --preferred-challenges=dns -d *.administracionderedes.com
+```
+
+El comando solicita solamente el certificado (certonly) sin instalarlo en ningun sitio de web. La forma de solicitud será interactiva (--manual) y la forma de comprobar control sobre el dominio será mediante registros dns (--preferred-challenges=dns). La respuesta del certbot podría ser
+
+```
+plugins selected: Authenticator manual, Installer None
+Starting new HTTPS connection (1): acme-v02.api.letsencrypt.org
+Obtaining a new certificate
+Performing the following challenges:
+dns-01 challenge for administracionderedes.com
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: The IP of this machine will be publicly logged as having requested this
+certificate. If you're running certbot in manual mode on a machine that is not
+your server, please ensure you're okay with that.
+
+Are you OK with your IP being logged?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(Y)es/(N)o: y
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Please deploy a DNS TXT record under the name
+_acme-challenge.administracionderedes.com with the following value:
+
+KpIQy7wTfL8RbES30T4rWWbP4PeBLfFwWaXbe738LgY
+
+Before continuing, verify the record is deployed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Press Enter to Continue
+```
+
+En el servidor de DNS, podríamos dar de alta un registro como el solicitado, de tipo TXT, con nombre _acme-challenge y el valor solicitado. Una vez que nos aseguremos (con nslookup o dig) que el registro se resuelve, podemos dar continuar
+
+```
+root@web4:/etc/apache2/sites-available# dig +short TXT _acme-challenge.administracionderedes.com
+"KpIQy7wTfL8RbES30T4rWWbP4PeBLfFwWaXbe738LgY"
+```
+
+Let's encrypt podría responder
+```
+Waiting for verification...
+Cleaning up challenges
+
+IMPORTANT NOTES:
+ - Congratulations! Your certificate and chain have been saved at:
+   /etc/letsencrypt/live/administracionderedes.com/fullchain.pem
+   Your key file has been saved at:
+   /etc/letsencrypt/live/administracionderedes.com/privkey.pem
+   Your cert will expire on 2021-02-28. To obtain a new or tweaked
+   version of this certificate in the future, simply run certbot
+   again. To non-interactively renew *all* of your certificates, run
+   "certbot renew"
+ - If you like Certbot, please consider supporting our work by:
+
+   Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+   Donating to EFF:                    https://eff.org/donate-le
+   ```
+
+Los archivos, es accesible en la ruta descrita en el texto final, en este caso `/etc/letsencrypt/live/administracionderedes.com/`, por ejemplo
+
+```
+root@web:~# ls -l /etc/letsencrypt/live/administracionderedes.com
+total 4
+lrwxrwxrwx 1 root root  40 Oct 30  2020 cert.pem -> ../../archive/administracionderedes.com/cert1.pem
+lrwxrwxrwx 1 root root  41 Oct 30   2020 chain.pem -> ../../archive/administracionderedes.com/chain1.pem
+lrwxrwxrwx 1 root root  45 Oct 30  2020 fullchain.pem -> ../../archive/administracionderedes.com/fullchain1.pem
+-rw-r--r-- 1 root root 682 Oct 30  2020 README
+```
+
+Como se puede observar, estos archivos son enlaces simbólicos a otros en /etc/letsencript/archive/**_dominio_**/. Let's Encrypt emite los certificados con validez por 3 meses, y al renovarlos va guardando los nuevos con sufijos numéricos consecutivos (por ejemplo cert2.pem, cert3.pem) para todos los archivos que se entregan. `certbot` actualiza los enlaces al sufijo actual de manera que el adminsitrador no tiene que modificar la configuración del servicio que los usa.
+
+En el caso de web, podemos configurar Apache para utilizar los certificados, podríamos crear un archivo llamado /etc/apache2/sites-available/ejemplo.administracionderedes.com.conf con los contenidos:
+
+```
+<VirtualHost *:80>
+    ServerName ejemplo.administracionderedes.com>
+    Redirect permanent / https://ejemplo.administracionderedes.com/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerAdmin webmaster@adminisacionderedes.com
+    ServerName ejemplo.administraciónderedes.com
+    DocumentRoot /opt/web/ejemplo.administracionderedes.com/html
+
+    <Directory /opt/web/ejemplo.administracionderedes.com/html>
+        Options -Indexes -FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    SSLEngine on
+    SSLCertificateKeyFile /etc/letsencrypt/live/administracionderedes.com/privkey.pem
+    SSLCertificateFile /etc/letsencrypt/live/administracionderedes.com/cert.pem
+    SSLCertificateChainFile /etc/letsencrypt/live/administracionderedes.com/fullchain.pem
+
+    LogLevel debug
+    ErrorLog  /var/log/apache2/administracionderedes.com_error.log
+    CustomLog /var/log/apache2/administracionderedes.com_access.log combined
+</VirtualHost>
+```
+
+Para habilitarlo, ejecutaríamos como root: `a2ensite ejemplo.administracionderedes.com`.
+Para que Apache lo empiece a servidir, tambien como root: `systemctl reload apache2`
 ### Un entorno de Linux en Windows: Windows Subsystem for Linux y Windows Terminal
