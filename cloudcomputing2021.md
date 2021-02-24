@@ -1,0 +1,31 @@
+# Cómputo en la Nube
+- Concepto de nube
+- Modelos de Cómputo en la Nube (https://aws.amazon.com/types-of-cloud-computing/)
+	- Infrastructure As A Service
+	- Software As A Service
+	- Platform As A Service
+- Modelos de Deployment
+	- Nube
+	- Híbrido
+	- En instalaciones
+- Los proveedores principales
+	- Amazon Web Services 
+	- Google Cloud Platform
+	- Azure
+	- Otros proveedores: Linode, Digital Ocean, etc
+- Introducción a Amazon Web Services
+	- La Consola web de Amazon Web Services
+		- Elastic Compute Cloud
+			- Elastic Block Storage
+			- Secure Shell
+			- Tags
+		- Virtual Private Cloud
+		- Identity and Access Management 
+		- Simple Storage Service
+		- Route 53
+		- CloudWatch
+		- CloudTrail
+	- La Interfaz de Línea de Comando en AWS
+		- Configuración
+		- Ejemplo de uso
+- Una introducción a la automatización de operaciones con Ansible
